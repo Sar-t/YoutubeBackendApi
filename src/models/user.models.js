@@ -53,7 +53,7 @@ const userSchema = new Schema({
 //pre() is a hook in mongoose
 userSchema.pre("save", async function(next){  //arrow function does not have its this pointer
     if(!this.isModified("password"))return next()
-    this.password = bcrypt.hash(this.password, 10) //(password, hashround)
+    this.password = await bcrypt.hash(this.password, 10) //(password, hashround)
     next()
 })
 

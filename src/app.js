@@ -16,4 +16,14 @@ app.use(express.urlencoded({extended:true, limit: '16kb'})); // express.urlencod
 //extended allows nested objects
 app.use(express.static('public')); // Serve static files from the 'public' directory
 app.use(cookieParser()); // Parse cookies from incoming requests
+
+
+//routes import
+import userRoutes from "./routes/user.routes.js"
+
+//routes declaration
+app.use("/api/v1/users", userRoutes);
+
+//https://localhost:8000/api/v1/users/register
+
 export default app;

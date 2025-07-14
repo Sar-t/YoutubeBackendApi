@@ -1,5 +1,6 @@
 import mongoose, { connect } from "mongoose";
 import dotenv from "dotenv";
+import app from "./app.js";
 
 import connectToDatabase from "./db/index.js";
 

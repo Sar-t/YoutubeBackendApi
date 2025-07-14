@@ -1,5 +1,8 @@
 const asyncHandler = (requestHandler) => {
-    Promise.resolve(requestHandler(req,res,next)).catch((error) => next(error)) // error is passed to next middleware
+    return (req,res,next)=>{
+        Promise.resolve(requestHandler(req,res,next))
+        .catch((error) => next(error)) // error is passed to next middleware
+    }
 }
 
 // const asyncHandler = (fn) => async (req,res,next) => { 

@@ -7,7 +7,6 @@ class ApiError extends Error {
     ){
         super(message)
         this.statusCode = statusCode
-        this.error = error
         this.data = null; //this property is used to add some custom error message
         this.message = message;
         this.success = false;

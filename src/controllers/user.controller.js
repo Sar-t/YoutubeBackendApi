@@ -285,7 +285,7 @@ const updateAccountDetails = asyncHandler(async (req,res)=>{
 
     return res
     .status(200)
-    .json(new ApiResponse(200, user, "Account details updated successfully!"));
+    .json(new ApiResponse(200, updatedUser, "Account details updated successfully!"));
 
 })
 
@@ -301,6 +301,8 @@ const updateUserAvatar = asyncHandler(async (req,res)=>{
     if(!avatar){
         throw new ApiError(400,"Error while upload avatar on cloudinary");
     }
+
+    //TODO: delete old avatar image from cloudinary
 
     const user = await User.findByIdAndUpdate(
         req?.user?._id,
@@ -334,6 +336,8 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
         throw new ApiError(400,"Error while upload coverImage on cloudinary");
     }
 
+    //TODO: delete old cover image from cloudinary
+
     const user = await User.findByIdAndUpdate(
         req?.user?._id,
         {
@@ -352,6 +356,93 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
         new ApiResponse(200,user,"CoverImage updated successfully")
     )
 })
+//gets the channel profile of a user by username
+const getUserChannelProfile = asyncHandler(async (req,res)=>{
+    const {username} = req.params; 
+
+    if(!username?.trim()){
+        throw new ApiError(400,"username is missing!");
+    }
+
+    const channel = User.aggregate([
+        {
+            $match:{ //filters the user with the username
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup:{ //joins to models on user._id = subscriptions.channel
+                from: "subscriptions", //model "Subscription" is stores as "subscriptions" in mongodb
+                localField: "_id", //_id is the field of current document
+                foreignField: "channel", // which of the documents has the channel(ObjectId) same as the user._id
+                as: "subscribers"
+            }
+            /*
+                [{
+                    subscriber: ObjectId("..."),
+                    channel: ObjectId("...")
+                },
+                {
+                    subscriber: ObjectId("..."),
+                    channel: ObjectId("...")
+                },
+                ...]
+            */
+        },
+        {
+            $lookup:{
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
+            }
+        },
+        {
+            $addFields:{
+                subscibersCount:{
+                    $size: "$subscribers" //counts the no. of documents in subscribers array
+                },
+                subscribedToCount:{
+                    $size: "$subscribedTo" //counts no. of documents in subscribedTo array
+                },
+                isSubscribed:{
+                    $cond:{
+                        if: {$in: [req.user?._id, "$subscribers.subscriber"]}, //it checks if the user._id is present in the subscribers array
+                    //$subscribers.subscriber: For each document in subscribers, it checks the subscriber field for the user._id
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project:{
+                fullname: 1,
+                username: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1,
+                subscibersCount: 1,
+                subscribedToCount: 1,
+                isSubscribed: 1
+            }
+        }
+    ])
+
+    console.log("channel:", channel);
+
+    if(!channel?.length){
+        throw new ApiError(404, "Channel not found!");
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "Channel profile fecthed successfully!")
+    )
+    
+
+})
 export {
     registerUser, 
     loginUser, 
@@ -360,5 +451,6 @@ export {
     changeCurrentPasword,
     getCurrentUser,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile
 };

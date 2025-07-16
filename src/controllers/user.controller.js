@@ -372,7 +372,7 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
         },
         {
             $lookup:{ //joins to models on user._id = subscriptions.channel
-                from: "subscriptions", //model "Subscription" is stores as "subscriptions" in mongodb
+                from: "subscriptions", //model "Subscription" is stores as "subscriptions" in mongodb // model which you want to join
                 localField: "_id", //_id is the field of current document
                 foreignField: "channel", // which of the documents has the channel(ObjectId) same as the user._id
                 as: "subscribers"
@@ -443,6 +443,58 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
     
 
 })
+
+const getWatchHistory = asyncHandler(async (req,res)=>{
+    const user = await User.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:{ //lookup gives an array
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline:[ 
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField: "owner",
+                            foreignField:"_id",
+                            as: "owner",
+                            pipeline:[ //we want to select some of the field of owner user to project
+                                {
+                                    fullname: 1,
+                                    username: 1,
+                                    avatar: 1 
+                                },
+                                {
+                                    $addFields:{
+                                        owner:{
+                                            $first: "$owner"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(
+        200,
+        user[0].watchHistory,
+        "Watch History fetched successfully!"
+    )
+})
+
+
 export {
     registerUser, 
     loginUser, 
@@ -452,5 +504,6 @@ export {
     getCurrentUser,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 };

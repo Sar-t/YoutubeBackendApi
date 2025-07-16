@@ -53,7 +53,7 @@ const registerUser = asyncHandler(async (req,res)=>{
         throw new ApiError(409, "Username or email already exists");
     }
     console.log("reached");
-    const avatarLocalPath = req.files?.avatar[0]?.path;
+    const avatarLocalPath = req.files?.avatar[0]?.path; //files is used because we are uploading two images files(cover and avatar). So we will access avatar through files which gives us both files
     //const coverImageLocalPath = req.files?.coverImage[0]?.path;
     let coverImageLocalPath = "";
     if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
@@ -291,7 +291,7 @@ const updateAccountDetails = asyncHandler(async (req,res)=>{
 
 const updateUserAvatar = asyncHandler(async (req,res)=>{
     
-    const avatarLocalPath = req.file?.path
+    const avatarLocalPath = req.file?.path //because only one file is uploaded on multer using upload.single()
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar file is missing");
     }
@@ -502,6 +502,7 @@ export {
     refreshAccessToken,
     changeCurrentPasword,
     getCurrentUser,
+    updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,

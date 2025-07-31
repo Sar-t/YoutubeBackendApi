@@ -16,7 +16,7 @@ const uploadOnCloudinary = async (localfilePath) => {
             resource_type: "auto"
         })
         // console.log("file is uploaded successfully!!",response.url);
-        fs.unlinkSync(localfilePath)
+        fs.unlinkSync(localfilePath) //after uploading file file is deleted from multer
         return response;
 
     } catch (error) {
@@ -25,4 +25,15 @@ const uploadOnCloudinary = async (localfilePath) => {
     }
 }
 
-export {uploadOnCloudinary};
+const deleteFromCloudinary = async (publicId)=>{
+    try {
+        const result = await cloudinary.uploader.destroy(publicId);
+        console.log("deleted successfully from cloudinary!");
+        console.log(result);
+        return result;
+    } catch (error) {
+        console.error("Cloudinary deletion error: ",error);
+    }
+}
+
+export {uploadOnCloudinary, deleteFromCloudinary};

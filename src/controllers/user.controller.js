@@ -4,6 +4,7 @@ import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../../utils/cloudinary.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import  jwt  from "jsonwebtoken";
+import mongoose from "mongoose";
 //registers user 
 //we dont need to use async handler here because we are not making any web request
 const generateAccessAndRefreshTokens = async (userId)=>{
@@ -36,6 +37,8 @@ const registerUser = asyncHandler(async (req,res)=>{
     //remove password and refresh token field from response
     //check for user creation response
     //return res
+    console.log("file",req.files);
+    console.log("body",req.body);
     const {fullname, email, username, password} = req.body;
     console.log(`email: ${email}, username: ${username}, password: ${password}, fullname: ${fullname}`);
 
@@ -52,7 +55,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     if(doesUserExist){
         throw new ApiError(409, "Username or email already exists");
     }
-    console.log("reached");
+    // console.log("reached");
     const avatarLocalPath = req.files?.avatar[0]?.path; //files is used because we are uploading two images files(cover and avatar). So we will access avatar through files which gives us both files
     //const coverImageLocalPath = req.files?.coverImage[0]?.path;
     let coverImageLocalPath = "";
@@ -72,6 +75,8 @@ const registerUser = asyncHandler(async (req,res)=>{
         throw new ApiError(400,"Avatar is required!");
     }
     console.log("avatar checking");
+
+    //Adding user in mongodb 
     const user = await User.create({
         fullname,
         email,
@@ -93,14 +98,14 @@ const registerUser = asyncHandler(async (req,res)=>{
         new ApiResponse(200, userCreated, "User registered successfully!")
     )
 
-    res.status(200).json({
-        message: "ok"
-    })
+    // res.status(200).json({
+    //     message: "ok"
+    // })
 
 });
 
 const loginUser = asyncHandler(async (req,res) => {
-    console.log(req.body);
+    //console.log(req.body);
     //req.body -> data
     const {email,username,password} = req.body;
 
@@ -112,7 +117,7 @@ const loginUser = asyncHandler(async (req,res) => {
     const existingUser = await User.findOne({
         $or: [{username},{email}]
     })
-    console.log(existingUser);
+    //console.log(existingUser);
     if(!existingUser){
         throw new ApiError(401, "user doesn't exist!");
     }
@@ -128,7 +133,7 @@ const loginUser = asyncHandler(async (req,res) => {
     const {accessToken,refreshToken} = await generateAccessAndRefreshTokens(existingUser._id);
 
     const user = await User.findById(existingUser._id);
-    console.log(user);
+    //console.log(user);
     //send cookies
 
     const loggedInUser = await User.findById(existingUser._id).select("-refreshToken -password");
@@ -233,9 +238,11 @@ const refreshAccessToken = asyncHandler(async(req,res)=>{
 })
 
 const changeCurrentPasword = asyncHandler(async(req,res)=>{
+    console.log("function called!");
     const {oldPassword, newPassword} = req.body
 
-    const user = await User.findById(user?._id);
+    const user = await User.findById(req.user?._id);
+    console.log("user",user);
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
     if(!isPasswordCorrect){
@@ -258,9 +265,14 @@ const changeCurrentPasword = asyncHandler(async(req,res)=>{
 })
 
 const getCurrentUser = asyncHandler(async (req,res)=>{
+    // console.log("function called!");
     return res
     .status(200)
-    .json(200,req.user,"current user fetched successfully!");
+    .json(new ApiResponse(
+        200,
+        req.user,
+        "current user fetched successfully!")
+    );
 })
 
 const updateAccountDetails = asyncHandler(async (req,res)=>{
@@ -269,8 +281,8 @@ const updateAccountDetails = asyncHandler(async (req,res)=>{
     if(!fullname || !email){
         throw new ApiError(400, "All field are required");
     }
-
-    const updatedUser = User.findByIdAndUpdate(
+    console.log("inputs checked");
+    const updatedUser = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set:{
@@ -282,6 +294,7 @@ const updateAccountDetails = asyncHandler(async (req,res)=>{
             new: true
         }
     ).select("-password")
+    console.log("updated user:",updatedUser);
 
     return res
     .status(200)
@@ -359,12 +372,12 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
 //gets the channel profile of a user by username
 const getUserChannelProfile = asyncHandler(async (req,res)=>{
     const {username} = req.params; 
-
+    console.log("username:",username);
     if(!username?.trim()){
         throw new ApiError(400,"username is missing!");
     }
 
-    const channel = User.aggregate([
+    const channel = await User.aggregate([
         {
             $match:{ //filters the user with the username
                 username: username?.toLowerCase()
@@ -448,7 +461,8 @@ const getWatchHistory = asyncHandler(async (req,res)=>{
     const user = await User.aggregate([
         {
             $match:{
-                _id: new mongoose.Types.ObjectId(req.user._id)
+                _id: new mongoose.Types.ObjectId(req.user._id) //filters user based on user._id 
+                //as req.user._id is a string, we convert it to ObjectId
             }
         },
         {
@@ -466,31 +480,35 @@ const getWatchHistory = asyncHandler(async (req,res)=>{
                             as: "owner",
                             pipeline:[ //we want to select some of the field of owner user to project
                                 {
+                                    $project:{
                                     fullname: 1,
                                     username: 1,
                                     avatar: 1 
-                                },
-                                {
-                                    $addFields:{
-                                        owner:{
-                                            $first: "$owner"
-                                        }
-                                    }
                                 }
+                            }
                             ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first: "$owner"
+                            }
                         }
                     }
                 ]
             }
         }
     ])
-
+    console.log(user[0].watchHistory);
     return res
     .status(200)
     .json(
-        200,
-        user[0].watchHistory,
-        "Watch History fetched successfully!"
+        new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "Watch History fetched successfully!"
+        )
     )
 })
 

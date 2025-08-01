@@ -58,7 +58,7 @@ const getAllVideos = asyncHandler(async (req,res)=>{
         .sort({createdAt: -1})
         .skip(skip)
         .limit(parseInt(limit)) //parseInt changes limit(string) to integer
-
+        .populate("owner","username email")
     const totalVideos = await Video.countDocuments(query);
 
     return res
@@ -122,7 +122,7 @@ const getVideo = asyncHandler(async (req,res)=>{
 
     const video = await Video.findOne({
         _id: videoId
-    });
+    }).populate("owner","username email");
 
     if(!video){
         throw new ApiError(

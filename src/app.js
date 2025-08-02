@@ -23,11 +23,15 @@ import userRoutes from "./routes/user.routes.js"
 import subscriptionRoutes from "./routes/subscription.routes.js"
 import videoRoutes from "./routes/video.routes.js"
 import playlistRoutes from "./routes/playlist.routes.js"
+import likesRoutes from "./routes/like.router.js"
+import commentRoutes from "./routes/comment.routes.js"
 //routes declaration
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/subscriptions", subscriptionRoutes);
 app.use("/api/v1/video",videoRoutes);
 app.use("/api/v1/playlist",playlistRoutes);
+app.use("/api/v1/like",likesRoutes);
+app.use("/api/v1/comments",commentRoutes)
 //https://localhost:8000/api/v1/users/register
 
 export default app;

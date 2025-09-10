@@ -34,7 +34,6 @@ router.route("/:userId")
 
 router.route("/:videoId")
 .get(
-    verifyJWT,
     getVideo
 )
 .delete(

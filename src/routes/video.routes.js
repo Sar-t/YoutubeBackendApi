@@ -26,7 +26,7 @@ router.route("/")  //get all videos of all users
     getAllVideos
 )
 
-router.route("/:userId")
+router.route("user/:userId")
 .get(
     verifyJWT,
     getUserVideos
